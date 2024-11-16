@@ -3,10 +3,9 @@ import hljs from 'highlight.js';
 import 'highlight.js/styles/monokai.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-// CodeBlock component for syntax highlighting
 function CodeBlock({ code }) {
     React.useEffect(() => {
-        hljs.highlightAll(); // Apply syntax highlighting
+        hljs.highlightAll();
     }, [code]);
 
     return (
@@ -16,7 +15,6 @@ function CodeBlock({ code }) {
     );
 }
 
-// Comments Component
 function Comments({ comments }) {
     return (
         <div className="mt-3">
@@ -39,7 +37,6 @@ function Comments({ comments }) {
 function App() {
     const [activeTab, setActiveTab] = useState('answer1');
 
-    // Static Data for the question
     const question = {
         title: "How to create a simple JavaScript function?",
         description: "I am trying to understand the basics of JavaScript functions. Can someone provide an example?",
@@ -50,7 +47,6 @@ function App() {
         ],
     };
 
-    // Static Data for accepted answers
     const acceptedAnswers = [
         {
             id: 'answer1',
@@ -69,7 +65,6 @@ function App() {
         },
     ];
 
-    // Static Data for other unaccepted answers
     const otherAnswers = [
         {
             id: 'unaccepted1',
@@ -91,7 +86,6 @@ function App() {
 
     return (
         <div className="container my-5">
-            {/* Question Section */}
             <div className="question bg-light p-4 rounded shadow-sm mb-4">
                 <h1 className="text-primary border-bottom pb-2">{question.title}</h1>
                 <p className="text-muted">{question.description}</p>
@@ -99,11 +93,9 @@ function App() {
                 <Comments comments={question.comments} />
             </div>
 
-            {/* Accepted Answers Section */}
             <div className="question bg-light p-4 rounded shadow-sm mb-4">
                 <h2 className="text-success">Accepted Answers</h2>
 
-                {/* Tabs for Accepted Answers */}
                 <ul className="nav nav-tabs mt-3">
                     {acceptedAnswers.map((answer) => (
                         <li className="nav-item" key={answer.id}>
@@ -117,7 +109,6 @@ function App() {
                     ))}
                 </ul>
 
-                {/* Tab Content */}
                 <div className="tab-content bg-secondary p-4 rounded shadow-sm mt-3">
                     {acceptedAnswers.map(
                         (answer) =>
@@ -138,7 +129,6 @@ function App() {
                 </div>
             </div>
 
-            {/* Other Answers Section */}
             <div className="question bg-light p-4 rounded shadow-sm">
                 <h2 className="text-warning">Other Answers</h2>
                 {otherAnswers.map((answer) => (

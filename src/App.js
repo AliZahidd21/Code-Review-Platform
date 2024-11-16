@@ -8,7 +8,6 @@ function App() {
     return (
         <Router>
         <div className="container mt-4">
-            {/* Navigation Bar */}
             <nav className="navbar navbar-expand-lg navbar-dark bg-primary mb-4 rounded shadow">
                 <div className="container-fluid">
                     <Link className="navbar-brand fw-bold" to="/">Q&A App</Link>
@@ -39,7 +38,6 @@ function App() {
                 </div>
             </nav>
 
-            {/* Routes */}
             <div className="card shadow-lg p-4 bg-light rounded">
                 <Routes>
                     <Route 

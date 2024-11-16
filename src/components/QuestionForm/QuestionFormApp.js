@@ -8,7 +8,6 @@ function QuestionForm() {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        // For static purposes, we're just preventing default submit action
         alert("Question submitted (This is a static form, no backend interaction).");
     };
 
@@ -17,7 +16,6 @@ function QuestionForm() {
             <div className="card shadow-sm p-4 rounded">
                 <h2 className="text-primary mb-4">Submit a Question</h2>
                 <form onSubmit={handleSubmit}>
-                    {/* Question Input */}
                     <div className="mb-3">
                         <label htmlFor="question" className="form-label">Question Title</label>
                         <input
@@ -31,7 +29,6 @@ function QuestionForm() {
                         />
                     </div>
 
-                    {/* Description Input */}
                     <div className="mb-3">
                         <label htmlFor="description" className="form-label">Description</label>
                         <textarea
@@ -45,7 +42,6 @@ function QuestionForm() {
                         />
                     </div>
 
-                    {/* Code Snippet Input */}
                     <div className="mb-3">
                         <label htmlFor="codeSnippet" className="form-label">Code Snippet (optional)</label>
                         <textarea
@@ -58,7 +54,6 @@ function QuestionForm() {
                         />
                     </div>
 
-                    {/* Submit Button */}
                     <button type="submit" className="btn btn-primary w-100">Submit Question</button>
                 </form>
             </div>
