@@ -10,13 +10,13 @@ const DisplayQuestions = () => {
 
   useEffect(() => {
     const params = new URLSearchParams(search);
-    const query = params.get("search"); // Get the search query
+    const query = params.get("search");
 
     const getQuestions = async () => {
       setLoading(true);
       setError(null);
       try {
-        const data = await fetchQuestions(query); // Use simulated backend
+        const data = await fetchQuestions(query);
         if (data.length === 0) {
           setError("No questions found");
         } else {

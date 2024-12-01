@@ -4,7 +4,6 @@ import hljs from "highlight.js";
 import "highlight.js/styles/monokai.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 
-// Components for displaying reusable blocks
 const CodeBlock = ({ code }) => {
     useEffect(() => {
         hljs.highlightAll();
@@ -52,21 +51,17 @@ const TabNavigation = ({ tabs, activeTab, onTabChange }) => (
     </ul>
 );
 
-// Main QuestionDisplay component
 const QuestionDisplay = () => {
-    const { id } = useParams(); // Extract question ID from URL
+    const { id } = useParams();
     const [question, setQuestion] = useState(null);
     const [activeTab, setActiveTab] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-
-    // Simulated API fetch for question details
     useEffect(() => {
         const fetchQuestionData = async () => {
             setLoading(true);
             setError(null);
             try {
-                // Mocked question data
                 const mockQuestion = {
                     title: "How to create a simple JavaScript function?",
                     description:
@@ -110,8 +105,6 @@ const QuestionDisplay = () => {
                         },
                     ],
                 };
-
-                // Simulate a delay
                 setTimeout(() => {
                     setQuestion(mockQuestion);
                     setActiveTab(mockQuestion.acceptedAnswers[0].id);
@@ -133,7 +126,6 @@ const QuestionDisplay = () => {
 
     return (
         <div className="container my-5">
-            {/* Question Details */}
             <div className="question bg-light p-4 rounded shadow-sm mb-4">
                 <h1 className="text-primary border-bottom pb-2">{question.title}</h1>
                 <p className="text-muted">{question.description}</p>
@@ -141,7 +133,6 @@ const QuestionDisplay = () => {
                 <Comments comments={question.comments} />
             </div>
 
-            {/* Accepted Answers */}
             <div className="question bg-light p-4 rounded shadow-sm mb-4">
                 <h2 className="text-success">Accepted Answers</h2>
                 <TabNavigation
@@ -169,7 +160,6 @@ const QuestionDisplay = () => {
                 </div>
             </div>
 
-            {/* Other Answers */}
             <div className="question bg-light p-4 rounded shadow-sm">
                 <h2 className="text-warning">Other Answers</h2>
                 {question.otherAnswers.map((answer) => (

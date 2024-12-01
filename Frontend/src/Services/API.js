@@ -1,7 +1,7 @@
 // api.js
 //import axios from "axios";
 
-//const BASE_URL = "http://localhost:5000"; // Normally, your backend URL
+//const BASE_URL = "http://localhost:5000";
 
 const sampleUserData = {
   username: "user1",
@@ -11,7 +11,6 @@ const sampleUserData = {
 
 export const login = async (username, password) => {
   try {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     if (
       username === sampleUserData.username &&
@@ -26,8 +25,6 @@ export const login = async (username, password) => {
     throw error;
   }
 };
-
-// api.js
 const sampleQuestions = [
   {
     id: 1,
@@ -55,10 +52,8 @@ const sampleQuestions = [
   },
 ];
 
-// Simulate an API call with filtering
 export const fetchQuestions = (search = "") => {
   return new Promise((resolve) => {
-    // Filter questions based on the search query
     if (search) {
       const filtered = sampleQuestions.filter(
         (q) =>
@@ -68,7 +63,7 @@ export const fetchQuestions = (search = "") => {
       );
       resolve(filtered);
     } else {
-      resolve(sampleQuestions); // Return all questions if no search query
+      resolve(sampleQuestions);
     }
   });
 };

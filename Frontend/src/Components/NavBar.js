@@ -10,23 +10,22 @@ const Navbar = () => {
 
   const handleAuthClick = () => {
     if (isSignedIn) {
-      logout(); // Log the user out
-      navigate("/"); // Redirect to home after logout
+      logout();
+      navigate("/");
     } else {
-      navigate("/login"); // Navigate to login page
+      navigate("/login");
     }
   };
 
   const handleProfileClick = () => {
     if (isSignedIn) {
-      navigate("/profile"); // Navigate to profile page
+      navigate("/profile");
     } else {
-      navigate("/login"); // Navigate to login page if not signed in
+      navigate("/login");
     }
   };
 
   const handleSearch = () => {
-    // Navigate to DisplayQuestions with the search query
     navigate(`/DisplayQuestions?search=${searchQuery}`);
   };
 
@@ -65,18 +64,17 @@ const Navbar = () => {
               </Link>
             </li>
           </ul>
-          {/*this is where the search bar should go*/}
           <div className="d-flex align-items-center">
             <input
               type="text"
               className="form-control me-2"
               placeholder="Search Questions"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)} // Update search query on change
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
             <button
               className="btn btn-outline-light"
-              onClick={handleSearch} // Trigger the search function
+              onClick={handleSearch}
             >
               Search
             </button>

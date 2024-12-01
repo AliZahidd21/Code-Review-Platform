@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 const AuthContext = createContext();
 
 export const useAuth = () => {
-  return useContext(AuthContext); // Expose the context
+  return useContext(AuthContext);
 };
 
 export const AuthProvider = ({ children }) => {
@@ -20,8 +20,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (username, password) => {
     try {
-      // Authentication logic here
-      const token = "mocked-token"; // Replace with actual API call in future
+      const token = "mocked-token";
       localStorage.setItem("authToken", token);
       setIsSignedIn(true);
       navigate("/");
