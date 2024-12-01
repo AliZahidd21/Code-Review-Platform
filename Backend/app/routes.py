@@ -156,7 +156,6 @@ def get_question_with_details(question_id):
         cursor = mysql.connection.cursor()
         cursor.execute("USE questionanswerplatform")  # Select the database explicitly
 
-        # SQL query to fetch the question, answers, and comments
         query = """
         SELECT 
             q.question_id AS question_id,
@@ -304,6 +303,154 @@ def get_user_info():
 
 
         return jsonify(user_info), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app_routes.route('/api/questions/<int:question_id>', methods=['DELETE'])
+def delete_question(question_id):
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("USE questionanswerplatform") 
+
+        query = "DELETE FROM questions WHERE question_id = %s"
+        
+        cursor.execute(query, (question_id,))
+        mysql.connection.commit()
+
+        if cursor.rowcount == 0:
+            return jsonify({"error": "Question not found"}), 404
+        
+        cursor.close()
+        return jsonify({"message": "Question deleted successfully"}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app_routes.route('/api/tags', methods=['GET'])
+def get_all_tags():
+    try:
+        cursor=mysql.connection.cursor()
+        cursor.execute("USE questionanswerplatform") 
+        query = "SELECT tag_id, tag_name FROM tags "
+        cursor.execute(query)
+        mysql.connection.commit()
+        results = cursor.fetchall()
+
+        cursor.close()
+        if not results:
+            return jsonify({"message": "No tags found"}), 404
+
+        tags = [{"tag_id": row[0], "tag_name": row[1]} for row in results]
+
+        return jsonify({"tags": tags}), 200
+
+    except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+@app_routes.route('/api/questions', methods=['GET'])
+def get_questions_by_tag():
+    try:
+        tag_name = request.args.get('tag')
+
+        if not tag_name:
+            return jsonify({"error": "Tag name is required"}), 400
+
+        cursor = mysql.connection.cursor()
+        cursor.execute("USE questionanswerplatform")  
+
+        query = """
+        SELECT 
+            q.question_id,
+            q.title,
+            q.body,
+            q.created_at,
+            q.updated_at,
+            q.views,
+            q.upvotes,
+            u.username AS asked_by
+        FROM 
+            questions q
+        JOIN 
+            question_tags qt ON q.question_id = qt.question_id
+        JOIN 
+            tags t ON qt.tag_id = t.tag_id
+        JOIN 
+            users u ON q.user_id = u.user_id
+        WHERE 
+            t.tag_name = %s;
+        """
+        
+        cursor.execute(query, (tag_name,))
+        results = cursor.fetchall()
+
+        cursor.close()
+
+        if not results:
+            return jsonify({"message": "No questions found for this tag"}), 404
+
+        questions = [
+            {
+                "question_id": row[0],
+                "title": row[1],
+                "body": row[2],
+                "created_at": row[3],
+                "updated_at": row[4],
+                "views": row[5],
+                "upvotes": row[6],
+                "asked_by": row[7]
+            }
+            for row in results
+        ]
+
+        return jsonify({"questions": questions}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app_routes.route('/api/questions/<int:question_id>/comments', methods=['GET'])
+def get_comments_for_question(question_id):
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("USE questionanswerplatform") 
+        query = """
+        SELECT 
+            c.comment_id,
+            c.parent_type,
+            c.parent_id,
+            c.body,
+            c.created_at,
+            c.updated_at,
+            u.username AS commented_by
+        FROM 
+            comments c
+        JOIN
+            users u ON c.user_id = u.user_id
+        WHERE
+            c.parent_type = 'question' AND c.parent_id = %s;
+        """
+
+        cursor.execute(query, (question_id,))
+        result = cursor.fetchall()
+
+        if not result:
+            return jsonify({"message": "No comments found for this question"}), 404
+
+        comments = [
+            {
+                "comment_id": row[0],
+                "parent_type": row[1],
+                "parent_id": row[2],
+                "body": row[3],
+                "created_at": row[4],
+                "updated_at": row[5],
+                "commented_by": row[6]
+            }
+            for row in result
+        ]
+
+        return jsonify({"comments": comments}), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
