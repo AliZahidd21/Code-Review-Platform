@@ -1,20 +1,34 @@
-from extensions import mysql
+from app.extensions import mysql
+from werkzeug.security import generate_password_hash
+from datetime import datetime
 
 # User model functions
-def register_user(username, email, password):
+def register_user(username, email, password_hash):
     """Registers a new user in the database."""
     cursor = mysql.connection.cursor()
-    query = "INSERT INTO users (username, email, password) VALUES (%s, %s, %s)"
-    cursor.execute(query, (username, email, password))
+    cursor.execute("USE questionanswerplatform")  # Select the database explicitly
+
+    
+    # Use current UTC time for created_at field
+    created_at = datetime.utcnow().isoformat()
+
+    query = """
+        INSERT INTO users (username, email, password_hash, created_at)
+        VALUES (%s, %s, %s, %s)
+    """
+    cursor.execute(query, (username, email, password_hash, created_at))
     mysql.connection.commit()
-    user_id = cursor.lastrowid
+    user_id = cursor.lastrowid  # Get the ID of the newly created user
     cursor.close()
+    
     return user_id
 
 def get_user_by_email(email):
     """Fetches user details by email."""
     cursor = mysql.connection.cursor()
-    query = "SELECT user_id, username, email, password FROM users WHERE email = %s"
+    cursor.execute("USE questionanswerplatform")  # Select the database explicitly
+
+    query = "SELECT user_id, username, email, password_hash FROM users WHERE email = %s"
     cursor.execute(query, (email,))
     user = cursor.fetchone()
     cursor.close()
@@ -23,6 +37,8 @@ def get_user_by_email(email):
 def get_user_by_id(user_id):
     """Fetches user details by ID."""
     cursor = mysql.connection.cursor()
+    cursor.execute("USE questionanswerplatform")  # Select the database explicitly
+
     query = "SELECT user_id, username, email FROM users WHERE user_id = %s"
     cursor.execute(query, (user_id,))
     user = cursor.fetchone()
@@ -33,6 +49,8 @@ def get_user_by_id(user_id):
 def get_top_questions():
     """Fetches the top questions based on views and upvotes."""
     cursor = mysql.connection.cursor()
+    cursor.execute("USE questionanswerplatform")  # Select the database explicitly
+
     query = """
     SELECT Q.question_id, Q.title, Q.body, Q.views, Q.upvotes, U.username AS author
     FROM questions Q

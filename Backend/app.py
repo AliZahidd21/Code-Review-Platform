@@ -1,10 +1,17 @@
-from flask import Flask, request, jsonify, redirect, url_for, render_template
+'''from flask import Flask, request, jsonify, redirect, url_for, render_template
 from flask_restful import Api, Resource, reqparse
 from werkzeug.security import generate_password_hash, check_password_hash
-from extensions import mysql
-from models import register_user, get_user_by_email, get_top_questions, get_user_by_id
+from app.extensions import mysql
+from flask_cors import CORS  # Import CORS for handling cross-origin requests
+from app.models import register_user, get_user_by_email, get_top_questions, get_user_by_id
 
 app = Flask(__name__)
+
+# Apply CORS to allow your frontend to make requests to this Flask backend
+CORS(app, resources={r"/api/*": {"origins": "http://localhost:3000"}})
+
+# Register the blueprint that contains your routes
+app.register_blueprint(app_routes)
 
 # MySQL configuration
 app.config['MYSQL_HOST'] = 'localhost'
@@ -17,7 +24,7 @@ mysql.init_app(app)
 
 # Initialize API
 api = Api(app)
-'''
+
 # Request parsers
 user_args = reqparse.RequestParser()
 user_args.add_argument("username", type=str, required=False, help="Username is required")
@@ -76,7 +83,6 @@ class LoginUser(Resource):
                 "user": {"user_id": user[0], "username": user[1], "email": user[2]},
             }, 200
         return {"error": "Invalid credentials"}, 401
-'''
 # Resource: Get Top Questions
 class TopQuestions(Resource):
     def get(self):
@@ -104,10 +110,39 @@ def test_db():
         return jsonify({"error": str(e)}), 500
 
 # Register API Resources
-'''api.add_resource(RegisterUser, "/api/users/register")
-api.add_resource(LoginUser, "/api/users/login")'''
+api.add_resource(RegisterUser, "/api/users/register")
+api.add_resource(LoginUser, "/api/users/login")
 api.add_resource(TopQuestions, "/api/top-questions")
 api.add_resource(UserByID, "/api/user/<int:user_id>")
+
+if __name__ == "__main__":
+    app.run(debug=True)
+'''
+from flask import Flask
+from flask_restful import Api
+from flask_cors import CORS
+from app.routes import app_routes  # Import routes from the 'app' folder
+from app.extensions import mysql  # Import MySQL connection setup from 'extensions'
+
+app = Flask(__name__)
+
+# MySQL configuration
+app.config['MYSQL_HOST'] = 'localhost'
+app.config['MYSQL_USER'] = 'root'
+app.config['MYSQL_PASSWORD'] = 'MYSQLPASSWORD'
+app.config['MYSQL_DATABASE'] = 'questionanswerplatform'
+
+# Initialize MySQL connection
+mysql.init_app(app)
+
+# Initialize API
+api = Api(app)
+
+# Apply CORS to allow your frontend to make requests to this Flask backend
+CORS(app, resources={r"/api/*": {"origins": "http://localhost:3000"}})
+
+# Register the blueprint for your routes
+app.register_blueprint(app_routes)
 
 if __name__ == "__main__":
     app.run(debug=True)

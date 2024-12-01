@@ -1,4 +1,3 @@
-# extensions.py
-from flask_mysql_connector import MySQL
+from flask_mysqldb import MySQL
 
 mysql = MySQL()

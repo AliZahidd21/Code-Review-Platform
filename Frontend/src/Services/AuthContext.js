@@ -1,5 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { createContext, useContext, useState } from "react";
 
 const AuthContext = createContext();
 
@@ -8,35 +7,44 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [isSignedIn, setIsSignedIn] = useState(false);
-  const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem("authToken"));
 
-  useEffect(() => {
-    const token = localStorage.getItem("authToken");
-    if (token) {
-      setIsSignedIn(true);
+  const login = async (email, password) => {
+    const response = await fetch("http://localhost:5000/api/users/login", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+    });
+
+    if (!response.ok) {
+        throw new Error("Login failed");
     }
-  }, []);
 
-  const login = async (username, password) => {
-    try {
-      const token = "mocked-token";
-      localStorage.setItem("authToken", token);
-      setIsSignedIn(true);
-      navigate("/");
-    } catch (error) {
-      console.error("Login error:", error);
+    const data = await response.json();
+    if (data.token) {
+        // Store the JWT token
+        localStorage.setItem("authToken", data.token);  
+
+        // Set the user data and token in the state
+        setUser({ user_id: data.user.user_id, username: data.user.username, email: data.user.email });
+        setToken(data.token);
     }
   };
 
   const logout = () => {
+    // Clear user and token from the state and localStorage
+    setUser(null);
+    setToken(null);
     localStorage.removeItem("authToken");
-    setIsSignedIn(false);
-    navigate("/login");
   };
 
+  const isSignedIn = Boolean(user && token);
+
   return (
-    <AuthContext.Provider value={{ isSignedIn, login, logout }}>
+    <AuthContext.Provider value={{ user, token, isSignedIn, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
