@@ -8,23 +8,6 @@ const sampleUserData = {
   password: "password123",
   token: "sample-jwt-token-12345",
 };
-
-export const login = async (username, password) => {
-  try {
-
-    if (
-      username === sampleUserData.username &&
-      password === sampleUserData.password
-    ) {
-      return sampleUserData.token;
-    } else {
-      throw new Error("Invalid username or password");
-    }
-  } catch (error) {
-    console.error("Login error:", error);
-    throw error;
-  }
-};
 const sampleQuestions = [
   {
     id: 1,

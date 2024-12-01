@@ -26,7 +26,10 @@ const Comments = ({ comments }) => (
                         key={index}
                         className="list-group-item list-group-item-light mb-2 rounded"
                     >
-                        <p className="mb-0">{comment.text}</p>
+                        <p className="mb-0">{comment.body}</p>
+                        <p className="text-muted small">
+                            {comment.parent_type === "question" ? "On Question" : "On Answer"}
+                        </p>
                     </div>
                 ))}
             </div>
@@ -36,145 +39,69 @@ const Comments = ({ comments }) => (
     </div>
 );
 
-const TabNavigation = ({ tabs, activeTab, onTabChange }) => (
-    <ul className="nav nav-tabs mt-3">
-        {tabs.map((tab) => (
-            <li className="nav-item" key={tab.id}>
-                <button
-                    className={`nav-link ${activeTab === tab.id ? "active bg-success text-white" : ""}`}
-                    onClick={() => onTabChange(tab.id)}
-                >
-                    {`Answer ${tab.id.slice(-1)}`}
-                </button>
-            </li>
-        ))}
-    </ul>
-);
-
 const QuestionDisplay = () => {
     const { id } = useParams();
     const [question, setQuestion] = useState(null);
-    const [activeTab, setActiveTab] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+
     useEffect(() => {
         const fetchQuestionData = async () => {
-            setLoading(true);
-            setError(null);
-            try {
-                const mockQuestion = {
-                    title: "How to create a simple JavaScript function?",
-                    description:
-                        "I am trying to understand the basics of JavaScript functions. Can someone provide an example?",
-                    codeSnippet: `function greet(name) { return "Hello, " + name; }`,
-                    comments: [
-                        { text: "This is a very good question!" },
-                        { text: "You can also use arrow functions here." },
-                    ],
-                    acceptedAnswers: [
-                        {
-                            id: "answer1",
-                            code: `function greet() { console.log("Hello, world!"); } greet();`,
-                            description:
-                                "This is the first accepted answer explaining the basics of functions.",
-                            comments: [
-                                { text: "This explanation helped me a lot!" },
-                                { text: "Good use of a simple example." },
-                            ],
-                        },
-                        {
-                            id: "answer2",
-                            code: `const greet = (name) => { console.log("Hello, " + name); }; greet("Alice");`,
-                            description:
-                                "This is another answer using an arrow function for greeting.",
-                            comments: [{ text: "I prefer this modern approach." }],
-                        },
-                    ],
-                    otherAnswers: [
-                        {
-                            id: "unaccepted1",
-                            code: `let greet = function(name) { return "Hi, " + name; }; console.log(greet("Bob"));`,
-                            description: "This answer uses a function expression.",
-                            comments: [],
-                        },
-                        {
-                            id: "unaccepted2",
-                            code: `function sayHi() { alert("Hi!"); } sayHi();`,
-                            description: "A simpler answer using the alert function.",
-                            comments: [{ text: "This could use a bit more explanation." }],
-                        },
-                    ],
-                };
-                setTimeout(() => {
-                    setQuestion(mockQuestion);
-                    setActiveTab(mockQuestion.acceptedAnswers[0].id);
-                    setLoading(false);
-                }, 1000);
-            } catch (err) {
-                setError("Failed to load question data.");
-                setLoading(false);
+          console.log(`Fetching question with id: ${id}`); // Log the id to ensure it's correct
+          try {
+            const response = await fetch(`http://localhost:5000/api/questions/${id}`);
+            if (!response.ok) {
+              throw new Error("Failed to fetch question data");
             }
+            const data = await response.json();
+            setQuestion(data);
+          } catch (err) {
+            setError(err.message);
+          } finally {
+            setLoading(false);
+          }
         };
-
+        
         fetchQuestionData();
-    }, [id]);
-
-    const handleTabChange = (tabId) => setActiveTab(tabId);
+      }, [id]);
+      
 
     if (loading) return <p>Loading question...</p>;
-    if (error) return <p>{error}</p>;
+    if (error) return <p className="text-danger">{error}</p>;
 
     return (
         <div className="container my-5">
             <div className="question bg-light p-4 rounded shadow-sm mb-4">
-                <h1 className="text-primary border-bottom pb-2">{question.title}</h1>
-                <p className="text-muted">{question.description}</p>
-                <CodeBlock code={question.codeSnippet} />
-                <Comments comments={question.comments} />
+                <h1 className="text-primary border-bottom pb-2">{question.question.title}</h1>
+                <p className="text-muted">{question.question.body}</p>
+                <p className="small text-muted">Views: {question.question.views}</p>
+                <p className="small text-muted">Upvotes: {question.question.upvotes}</p>
             </div>
+            <Comments
+                comments={question.comments.filter((comment) => comment.parent_type === "question")}
+            />
+            <div className="answers bg-light p-4 rounded shadow-sm">
+                <h2 className="text-success">Answers</h2>
+                {question.answers.length > 0 ? (
+                    question.answers.map((answer) => (
+                        <div className="bg-white p-3 rounded shadow-sm mb-4" key={answer.answer_id}>
+                            <p className="lead text-dark">{answer.body}</p>
+                            <CodeBlock code={answer.code || "No code snippet provided"} />
+                            <p className="small text-muted">Upvotes: {answer.upvotes}</p>
 
-            <div className="question bg-light p-4 rounded shadow-sm mb-4">
-                <h2 className="text-success">Accepted Answers</h2>
-                <TabNavigation
-                    tabs={question.acceptedAnswers}
-                    activeTab={activeTab}
-                    onTabChange={handleTabChange}
-                />
-                <div className="tab-content bg-secondary p-4 rounded shadow-sm mt-3">
-                    {question.acceptedAnswers.map(
-                        (answer) =>
-                            activeTab === answer.id && (
-                                <div key={answer.id}>
-                                    <div className="row">
-                                        <div className="col">
-                                            <CodeBlock code={answer.code} />
-                                        </div>
-                                        <div className="col">
-                                            <p className="lead text-white">{answer.description}</p>
-                                        </div>
-                                    </div>
-                                    <Comments comments={answer.comments} />
-                                </div>
-                            )
-                    )}
-                </div>
-            </div>
-
-            <div className="question bg-light p-4 rounded shadow-sm">
-                <h2 className="text-warning">Other Answers</h2>
-                {question.otherAnswers.map((answer) => (
-                    <div className="bg-light p-3 rounded shadow-sm mb-3" key={answer.id}>
-                        <div className="row">
-                            <div className="col">
-                                <CodeBlock code={answer.code} />
-                            </div>
-                            <div className="col">
-                                <p className="lead">{answer.description}</p>
-                            </div>
+                            {/* Comments on Answer */}
+                            <Comments
+                                comments={question.comments.filter(
+                                    (comment) =>
+                                        comment.parent_type === "answer" &&
+                                        comment.parent_id === answer.answer_id
+                                )}
+                            />
                         </div>
-                        <Comments comments={answer.comments} />
-                    </div>
-                ))}
+                    ))
+                ) : (
+                    <p className="text-muted">No answers yet.</p>
+                )}
             </div>
         </div>
     );

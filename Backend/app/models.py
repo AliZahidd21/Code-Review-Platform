@@ -65,3 +65,4 @@ def get_top_questions():
         {"question_id": q[0], "title": q[1], "body": q[2], "views": q[3], "upvotes": q[4], "author": q[5]}
         for q in questions
     ]
+
