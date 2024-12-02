@@ -5,53 +5,6 @@ import "highlight.js/styles/monokai.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { useAuth } from "../Services/AuthContext";
 
-// A reusable EditButton component
-const EditButton = ({ onEdit }) => (
-  <button className="btn btn-warning btn-sm ms-2" onClick={onEdit}>
-    Edit
-  </button>
-);
-
-const CodeBlock = ({ code }) => {
-  useEffect(() => {
-    hljs.highlightAll();
-  }, [code]);
-
-  return (
-    <pre className="p-3 bg-dark text-light rounded">
-      <code>{code || "No code snippet provided"}</code>{" "}
-      {/* Default message when no code */}
-    </pre>
-  );
-};
-
-// A component to render comments with edit functionality
-const Comments = ({ comments, userId, onEditComment }) => (
-  <div className="mt-3">
-    <h5 className="text-info">Comments</h5>
-    {comments.length > 0 ? (
-      <div className="list-group">
-        {comments.map((comment) => (
-          <div
-            key={comment.comment_id}
-            className="list-group-item list-group-item-light mb-2 rounded"
-          >
-            <p className="mb-0">{comment.body}</p>
-            <p className="text-muted small">
-              {comment.parent_type === "question" ? "On Question" : "On Answer"}
-            </p>
-            {userId === comment.user_id && (
-              <EditButton onEdit={() => onEditComment(comment)} />
-            )}
-          </div>
-        ))}
-      </div>
-    ) : (
-      <p className="text-muted">No comments yet.</p>
-    )}
-  </div>
-);
-
 const QuestionDisplay = () => {
   const { id } = useParams();
   const [question, setQuestion] = useState(null);
@@ -60,6 +13,11 @@ const QuestionDisplay = () => {
   const [userId, setUserId] = useState(null);
   const [editingItem, setEditingItem] = useState(null);
   const [updatedContent, setUpdatedContent] = useState({});
+  const [answerBody, setAnswerBody] = useState("");
+  const [answerCode, setAnswerCode] = useState("");
+  const [commentBody, setCommentBody] = useState("");
+  const [selectedParentType, setSelectedParentType] = useState("question");
+  const [selectedParentId, setSelectedParentId] = useState(null);
   const { isSignedIn } = useAuth();
 
   useEffect(() => {
@@ -92,7 +50,7 @@ const QuestionDisplay = () => {
         );
         if (!response.ok) throw new Error("Failed to fetch question data");
         const data = await response.json();
-        console.log("Fetched question data:", data); // Log the full response to check
+        setSelectedParentId(id);
         setQuestion(data);
       } catch (err) {
         setError(err.message);
@@ -108,7 +66,7 @@ const QuestionDisplay = () => {
     setEditingItem({ type, item });
     setUpdatedContent(
       item.body
-        ? { code: item.code || "", body: item.body } // Ensure code is part of updatedContent
+        ? { code: item.code || "", body: item.body }
         : { body: item.body }
     );
   };
@@ -117,25 +75,17 @@ const QuestionDisplay = () => {
     if (!editingItem) return;
 
     const { type, item } = editingItem;
-    let ID;
+    let endpoint;
 
     if (type === "question") {
-      ID = item.question_id;
-      handleSaveQuestion(ID);
+      endpoint = `/api/updatequestion/${item.question_id}`;
     } else if (type === "answer") {
-      ID = item.answer_id;
-      handleSaveAnswer(ID);
+      endpoint = `/api/updateanswer/${item.answer_id}`;
     } else if (type === "comment") {
-      ID = item.comment_id;
-      handleSaveComment(ID);
+      endpoint = `/api/updatecomment/${item.comment_id}`;
     }
-  };
-
-  const handleSaveQuestion = async (ID) => {
-    if (!ID) return;
 
     try {
-      const endpoint = `/api/updatequestion/${ID}`;
       const token = localStorage.getItem("authToken");
       const response = await fetch(`http://localhost:5000${endpoint}`, {
         method: "PUT",
@@ -146,75 +96,83 @@ const QuestionDisplay = () => {
         body: JSON.stringify(updatedContent),
       });
 
-      if (!response.ok) throw new Error("Failed to update question");
+      if (!response.ok) throw new Error(`Failed to update ${type}`);
 
       setEditingItem(null);
-      // Optionally refresh the data
+      // Refresh data
       const refreshedResponse = await fetch(
         `http://localhost:5000/api/questions/${id}`
       );
       const refreshedData = await refreshedResponse.json();
       setQuestion(refreshedData);
     } catch (err) {
-      console.error("Error while saving question:", err);
+      console.error(`Error while saving ${type}:`, err);
     }
   };
 
-  const handleSaveAnswer = async (ID) => {
-    if (!ID) return;
+  const handleSubmitAnswer = async (e) => {
+    e.preventDefault();
+    if (!isSignedIn) {
+      alert("You must be signed in to submit an answer.");
+      return;
+    }
 
+    const token = localStorage.getItem("authToken");
     try {
-      const endpoint = `/api/updateanswer/${ID}`;
-      const token = localStorage.getItem("authToken");
-      const response = await fetch(`http://localhost:5000${endpoint}`, {
-        method: "PUT",
+      const response = await fetch(`http://localhost:5000/api/${id}/answers`, {
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(updatedContent),
+        body: JSON.stringify({ body: answerBody, code: answerCode }),
       });
 
-      if (!response.ok) throw new Error("Failed to update answer");
+      if (!response.ok) throw new Error("Failed to submit answer");
 
-      setEditingItem(null);
-      // Optionally refresh the data
-      const refreshedResponse = await fetch(
-        `http://localhost:5000/api/questions/${id}`
-      );
-      const refreshedData = await refreshedResponse.json();
-      setQuestion(refreshedData);
+      const newAnswer = await response.json();
+      setQuestion((prev) => ({
+        ...prev,
+        answers: [...prev.answers, newAnswer],
+      }));
+      setAnswerBody("");
+      setAnswerCode("");
     } catch (err) {
-      console.error("Error while saving answer:", err);
+      console.error("Error submitting answer:", err);
     }
   };
 
-  const handleSaveComment = async (ID) => {
-    if (!ID) return;
+  const handleSubmitComment = async (e) => {
+    e.preventDefault();
+    if (!isSignedIn) {
+      alert("You must be signed in to submit a comment.");
+      return;
+    }
 
+    const token = localStorage.getItem("authToken");
     try {
-      const endpoint = `/api/updatecomment/${ID}`;
-      const token = localStorage.getItem("authToken");
-      const response = await fetch(`http://localhost:5000${endpoint}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(updatedContent),
-      });
-
-      if (!response.ok) throw new Error("Failed to update comment");
-
-      setEditingItem(null);
-      // Optionally refresh the data
-      const refreshedResponse = await fetch(
-        `http://localhost:5000/api/questions/${id}`
+      const response = await fetch(
+        `http://localhost:5000/api/comments/${selectedParentType}/${selectedParentId}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ body: commentBody }),
+        }
       );
-      const refreshedData = await refreshedResponse.json();
-      setQuestion(refreshedData);
+
+      if (!response.ok) throw new Error("Failed to submit comment");
+
+      const newComment = await response.json();
+      setQuestion((prev) => ({
+        ...prev,
+        comments: [...prev.comments, newComment],
+      }));
+      setCommentBody("");
     } catch (err) {
-      console.error("Error while saving comment:", err);
+      console.error("Error submitting comment:", err);
     }
   };
 
@@ -223,91 +181,112 @@ const QuestionDisplay = () => {
 
   const formatTimestamp = (timestamp) => {
     const date = new Date(timestamp);
-    return `${date.toLocaleDateString()}`;
+    return date.toLocaleDateString();
   };
 
   return (
     <div className="container my-5">
+      {/* Question Section */}
       <div className="question bg-light p-4 rounded shadow-sm mb-4">
-        <h1 className="text-primary border-bottom pb-2">
-          {question.question.title}
-        </h1>
-        <CodeBlock
-          code={question.question.code || "No code snippet provided"}
-        />
-        <p className="text-muted">{question.question.body}</p>
-        <p className="small text-muted">Views: {question.question.views}</p>
-        <p className="small text-muted">Upvotes: {question.question.upvotes}</p>
-
-        {/* Display Created or Last Edited Timestamps */}
+        <h1 className="text-primary">{question.question.title}</h1>
+        <p>{question.question.body}</p>
+        <pre className="bg-dark text-light p-3 rounded">
+          <code>{question.question.code || "No code snippet provided"}</code>
+        </pre>
+        <p className="text-muted">Username: {question.question.asked_by}</p>{" "}
+        {/* 'posted_by' for question */}
         <p>
           <strong>Created At:</strong>{" "}
           {formatTimestamp(question.question.created_at)}
         </p>
-        {question.question.updated_at &&
-          question.question.created_at !== question.question.updated_at && (
-            <p>
-              <strong>Last Edited At:</strong>{" "}
-              {formatTimestamp(question.question.updated_at)}
-            </p>
-          )}
-
         {userId === question.question.user_id && (
-          <EditButton
-            onEdit={() => handleEdit("question", question.question)}
-          />
+          <button
+            className="btn btn-warning btn-sm"
+            onClick={() => handleEdit("question", question.question)}
+          >
+            Edit
+          </button>
         )}
       </div>
-      <Comments
-        comments={question.comments.filter((c) => c.parent_type === "question")}
-        userId={userId}
-        onEditComment={(comment) => handleEdit("comment", comment)}
-      />
+
+      {/* Answers Section */}
       <div className="answers bg-light p-4 rounded shadow-sm">
         <h2 className="text-success">Answers</h2>
-        {question.answers.length > 0 ? (
-          question.answers.map((answer) => (
-            <div
-              className="bg-white p-3 rounded shadow-sm mb-4"
-              key={answer.answer_id}
-            >
-              <p className="lead text-dark">{answer.body}</p>
-              <CodeBlock code={answer.code || "No code snippet provided"} />
-              <p className="small text-muted">Upvotes: {answer.upvotes}</p>
-
-              {/* Display Created or Last Edited Timestamps for Answer */}
-              <p>
-                <strong>Created At:</strong>{" "}
-                {formatTimestamp(answer.created_at)}
-              </p>
-              {answer.updated_at && answer.created_at !== answer.updated_at && (
-                <p>
-                  <strong>Last Edited At:</strong>{" "}
-                  {formatTimestamp(answer.updated_at)}
-                </p>
-              )}
-
-              {userId === answer.user_id && (
-                <EditButton onEdit={() => handleEdit("answer", answer)} />
-              )}
-              <Comments
-                comments={question.comments.filter(
-                  (comment) =>
-                    comment.parent_type === "answer" &&
-                    comment.parent_id === answer.answer_id
-                )}
-                userId={userId}
-                onEditComment={(comment) => handleEdit("comment", comment)}
-              />
-            </div>
-          ))
-        ) : (
-          <p className="text-muted">No answers yet.</p>
-        )}
+        {question.answers.map((answer) => (
+          <div
+            className="bg-white p-3 rounded shadow-sm mb-4"
+            key={answer.answer_id}
+          >
+            <p>{answer.body}</p>
+            <pre className="bg-dark text-light p-3 rounded">
+              <code>{answer.code || "No code snippet provided"}</code>
+            </pre>
+            <p className="text-muted">Username: {answer.asked_by}</p>{" "}
+            {/* 'posted_by' for answer */}
+            <p>
+              <strong>Created At:</strong> {formatTimestamp(answer.created_at)}
+            </p>
+            {userId === answer.user_id && (
+              <button
+                className="btn btn-warning btn-sm"
+                onClick={() => handleEdit("answer", answer)}
+              >
+                Edit
+              </button>
+            )}
+          </div>
+        ))}
+        <form onSubmit={handleSubmitAnswer}>
+          <textarea
+            className="form-control mb-2"
+            placeholder="Write your answer..."
+            value={answerBody}
+            onChange={(e) => setAnswerBody(e.target.value)}
+            required
+          />
+          <textarea
+            className="form-control mb-2"
+            placeholder="Add optional code..."
+            value={answerCode}
+            onChange={(e) => setAnswerCode(e.target.value)}
+          />
+          <button type="submit" className="btn btn-success">
+            Submit Answer
+          </button>
+        </form>
       </div>
+
+      {/* Comments Section */}
+      <div className="comments bg-light p-4 rounded shadow-sm">
+        <h3 className="text-info">Comments</h3>
+        {question.comments.map((comment) => (
+          <div key={comment.comment_id}>
+            <p>{comment.body}</p>
+            <p className="text-muted">Username: {comment.posted_by}</p>{" "}
+            {/* 'posted_by' for comment */}
+            <p>
+              <strong>Created At:</strong> {formatTimestamp(comment.created_at)}
+            </p>
+          </div>
+        ))}
+
+        <form onSubmit={handleSubmitComment}>
+          <textarea
+            className="form-control mb-2"
+            placeholder="Write your comment..."
+            value={commentBody}
+            onChange={(e) => setCommentBody(e.target.value)}
+            required
+          />
+          <button type="submit" className="btn btn-primary">
+            Submit Comment
+          </button>
+        </form>
+      </div>
+
+      {/* Edit Modal for Question/Answer */}
       {editingItem && (
         <div className="edit-modal">
-          {/* Check if it's a question or answer and include a code textarea */}
           {(editingItem.type === "question" ||
             editingItem.type === "answer") && (
             <>
@@ -325,7 +304,6 @@ const QuestionDisplay = () => {
             </>
           )}
 
-          {/* Common textarea for editing body */}
           <textarea
             className="form-control mb-3"
             placeholder="Edit body"

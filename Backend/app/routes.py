@@ -33,7 +33,6 @@ def decode_token():
     except jwt.InvalidTokenError:
         return None, "Invalid token"
 
-
 # Route: Login a user
 @app_routes.route('/api/users/login', methods=['POST'])
 def login():
@@ -114,7 +113,6 @@ def get_all_questions():
     try:
         cursor = mysql.connection.cursor()
         cursor.execute("USE questionanswerplatform")  # Select the database explicitly
-
         query = """
             SELECT 
                 q.question_id,
@@ -132,6 +130,7 @@ def get_all_questions():
         """
         cursor.execute(query)
         results = cursor.fetchall()
+
         questions = [
             {
                 "question_id": row[0],
@@ -146,8 +145,10 @@ def get_all_questions():
             for row in results
         ]
         return jsonify({"questions": questions}), 200
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 @app_routes.route('/api/questions/<int:question_id>', methods=['GET'])
 def get_question_with_details(question_id):
@@ -166,6 +167,7 @@ def get_question_with_details(question_id):
             q.updated_at AS question_updated_at,
             q.views AS question_views,
             q.upvotes AS question_upvotes,
+            u.username AS question_asked_by,  -- Added username for the question creator
             
             a.answer_id AS answer_id,
             a.body AS answer_body,
@@ -173,13 +175,15 @@ def get_question_with_details(question_id):
             a.created_at AS answer_created_at,
             a.updated_at AS answer_updated_at,
             a.upvotes AS answer_upvotes,
+            ua.username AS answer_asked_by,  -- Added username for the answer creator
             
             c.comment_id AS comment_id,
             c.parent_type AS comment_parent_type,
             c.parent_id AS comment_parent_id,
             c.body AS comment_body,
             c.created_at AS comment_created_at,
-            c.updated_at AS comment_updated_at
+            c.updated_at AS comment_updated_at,
+            uc.username AS comment_posted_by  -- Added username for the comment creator
         FROM 
             questions q
         LEFT JOIN 
@@ -189,6 +193,12 @@ def get_question_with_details(question_id):
                 (c.parent_type = 'question' AND c.parent_id = q.question_id) OR
                 (c.parent_type = 'answer' AND c.parent_id = a.answer_id)
             )
+        LEFT JOIN
+            users u ON q.user_id = u.user_id  -- Join for the question creator
+        LEFT JOIN
+            users ua ON a.user_id = ua.user_id  -- Join for the answer creator
+        LEFT JOIN
+            users uc ON c.user_id = uc.user_id  -- Join for the comment creator
         WHERE 
             q.question_id = %s;
         """
@@ -212,6 +222,7 @@ def get_question_with_details(question_id):
                 "updated_at": result[0][5],
                 "views": result[0][6],
                 "upvotes": result[0][7],
+                "asked_by": result[0][8],  # Adding username of the question creator
             },
             "answers": [],
             "comments": [],
@@ -231,7 +242,8 @@ def get_question_with_details(question_id):
                     "created_at": row[11],
                     "updated_at": row[12],
                     "upvotes": row[13],
-                    "comments": []  # This will
+                    "asked_by": row[14],  # Adding username of the answer creator
+                    "comments": []  # This will hold comments for the answer
                 }
                 # Add answer to dictionary, indexed by answer_id
                 answers[row[8]] = answer
@@ -244,7 +256,8 @@ def get_question_with_details(question_id):
                     "parent_id": row[16],
                     "body": row[17],
                     "created_at": row[18],
-                    "updated_at": row[19]
+                    "updated_at": row[19],
+                    "posted_by": row[20],  # Adding username of the comment creator
                 }
                 if row[15] == 'answer' and row[16] in answers:
                     answers[row[16]]["comments"].append(comment)
@@ -259,6 +272,7 @@ def get_question_with_details(question_id):
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 @app_routes.route('/api/users', methods=['GET'])
 def get_user_info():
@@ -675,3 +689,175 @@ def updatecomment(comment_id):
         # Log the error for debugging purposes
         print(f"Error: {e}")
         return jsonify({"error": "An unexpected error occurred"}), 500
+
+@app_routes.route('/api/<int:question_id>/answers', methods=['POST'])
+def post_answer(question_id):
+    try:
+        print(f"Received POST request to post an answer for question ID: {question_id}")
+        
+        data = request.get_json()
+        print(f"Request data: {data}")
+
+        payload, error = decode_token()
+        print(f"Decoded token: {payload}, Error: {error}")
+        
+        if error:
+            return jsonify({"error": "Invalid token"}), 401
+
+        user_id = payload['user_id']
+        print(f"User ID extracted from token: {user_id}")
+
+        body = data.get("body")
+        code = data.get("code", None)  # Optional code snippet
+
+        if not body:
+            print("Answer body is missing")
+            return jsonify({"error": "Answer body cannot be empty"}), 400
+
+        print("Attempting to insert answer into the database...")
+        cursor = mysql.connection.cursor()
+        cursor.execute("USE questionanswerplatform")
+        cursor.execute("""
+            INSERT INTO answers (question_id, user_id, body, code, created_at)
+            VALUES (%s, %s, %s, %s, NOW())
+        """, (question_id, user_id, body, code))
+        mysql.connection.commit()
+        print("Answer inserted successfully!")
+
+        return jsonify({"message": "Answer posted successfully"}), 201
+    except Exception as e:
+        print(f"Error occurred in post_answer: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app_routes.route('/api/comments/<parent_type>/<int:parent_id>', methods=['POST'])
+def post_comment(parent_type, parent_id):
+    try:
+        payload, error = decode_token()
+        user_id = payload['user_id']
+        data = request.get_json()
+        body = data.get("body")
+
+        if not body:
+            return jsonify({"error": "Comment body cannot be empty"}), 400
+
+        cursor = mysql.connection.cursor()
+        cursor.execute("USE questionanswerplatform")
+        cursor.execute("""
+            INSERT INTO comments (parent_type, parent_id, user_id, body, created_at)
+            VALUES (%s, %s, %s, %s, NOW())
+        """, (parent_type, parent_id, user_id, body))
+        mysql.connection.commit()
+
+        return jsonify({"message": "Comment posted successfully"}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app_routes.route('/api/user/myquestions', methods=['GET'])
+def get_user_questions():
+    try:
+        payload, error = decode_token()
+        user_id = payload['user_id']
+        # Establish a database connection
+        cursor = mysql.connection.cursor()
+        cursor.execute("USE questionanswerplatform")  # Select the database explicitly
+
+        query = """
+        SELECT 
+            q.question_id,
+            q.title,
+            q.body,
+            q.created_at,
+            q.updated_at,
+            q.upvotes,
+            u.username AS asked_by
+        FROM 
+            questions q
+        JOIN 
+            users u ON q.user_id = u.user_id
+        WHERE 
+            q.user_id = %s;
+        """
+
+        # Execute the query with the user's ID
+        cursor.execute(query, (user_id,))
+        
+        result = cursor.fetchall()
+
+        # If no results, return an error
+        if not result:
+            return jsonify({"error": "No questions found for this user"}), 404
+
+        # Organize the result into a structured format
+        questions = []
+        for row in result:
+            questions.append({
+                "question_id": row[0],
+                "title": row[1],
+                "body": row[2],
+                "created_at": row[3],
+                "updated_at": row[4],
+                "upvotes": row[5],
+                "asked_by": row[6],
+            })
+
+        return jsonify({"questions": questions}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app_routes.route('/api/my-answered-questions', methods=['GET'])
+def get_answered_questions():
+    try:
+        # Decode the JWT token to get the user ID
+        payload, error = decode_token()
+        user_id = payload['user_id']
+
+        # Query the database to fetch all questions where the user has answered
+        cursor = mysql.connection.cursor()
+        cursor.execute("USE questionanswerplatform")  # Select the database explicitly
+
+        
+        cursor.execute("""
+            SELECT 
+                q.question_id,
+                q.title,
+                q.body,
+                q.code,
+                q.created_at,
+                q.updated_at,
+                a.answer_id,
+                a.body AS answer_body,
+                a.created_at AS answer_created_at
+            FROM questions q
+            JOIN answers a ON q.question_id = a.question_id
+            WHERE a.user_id = %s
+        """, (user_id,))
+        
+        result = cursor.fetchall()
+        
+        # If no answers, return an empty list
+        if not result:
+            return jsonify({"message": "You haven't answered any questions."}), 200
+        
+        # Organize the result into a structured format
+        questions = []
+        for row in result:
+            question = {
+                "question_id": row[0],
+                "title": row[1],
+                "body": row[2],
+                "code": row[3],
+                "created_at": row[4],
+                "updated_at": row[5],
+                "answer": {
+                    "answer_id": row[6],
+                    "body": row[7],
+                    "created_at": row[8]
+                }
+            }
+            questions.append(question)
+        
+        return jsonify(questions), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

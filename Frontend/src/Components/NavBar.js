@@ -58,11 +58,27 @@ const Navbar = () => {
                 View Questions
               </Link>
             </li>
-            <li className="nav-item">
-              <Link className="nav-link" to="/submit">
-                Submit a Question
-              </Link>
-            </li>
+            {isSignedIn ? (
+              <>
+                <li className="nav-item">
+                  <Link className="nav-link" to="/submit">
+                    Submit a Question
+                  </Link>
+                </li>
+                <li className="nav-item">
+                  <Link className="nav-link" to="/myquestions">
+                    My Questions
+                  </Link>
+                </li>
+                <li className="nav-item">
+                  <Link className="nav-link" to="/myanswers">
+                    My Answers
+                  </Link>
+                </li>
+              </>
+            ) : (
+              <></>
+            )}
           </ul>
           <div className="d-flex align-items-center">
             <input
@@ -72,10 +88,7 @@ const Navbar = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
-            <button
-              className="btn btn-outline-light"
-              onClick={handleSearch}
-            >
+            <button className="btn btn-outline-light" onClick={handleSearch}>
               Search
             </button>
             {isSignedIn ? (

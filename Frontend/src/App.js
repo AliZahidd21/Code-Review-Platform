@@ -9,6 +9,9 @@ import LoginPage from "./Components/LoginPage";
 import Navbar from "./Components/NavBar";
 import Profile from "./Components/UserProfile";
 import Register from "./Components/Register";
+import MyQuestions from "./Components/myquestions";
+import MyAnswers from "./Components/myanswers";
+
 
 function App() {
   return (
@@ -18,6 +21,8 @@ function App() {
         <Routes>
           <Route path="/" element={<p>Home Page</p>} />
           <Route path="/RegisterUser" element={<Register />} />
+          <Route path="/myanswers" element={<MyAnswers />} />
+          <Route path="/myquestions" element={<MyQuestions />} />
           <Route path="/Profile" element={<Profile />} />
           <Route path="/submit" element={<QuestionForm />} />
           <Route path="/Login" element={<LoginPage />} />
