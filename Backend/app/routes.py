@@ -161,6 +161,7 @@ def get_question_with_details(question_id):
             q.question_id AS question_id,
             q.title AS question_title,
             q.body AS question_body,
+            q.code AS question_code,
             q.created_at AS question_created_at,
             q.updated_at AS question_updated_at,
             q.views AS question_views,
@@ -206,10 +207,11 @@ def get_question_with_details(question_id):
                 "question_id": result[0][0],
                 "title": result[0][1],
                 "body": result[0][2],
-                "created_at": result[0][3],
-                "updated_at": result[0][4],
-                "views": result[0][5],
-                "upvotes": result[0][6],
+                "code": result[0][3],
+                "created_at": result[0][4],
+                "updated_at": result[0][5],
+                "views": result[0][6],
+                "upvotes": result[0][7],
             },
             "answers": [],
             "comments": [],
@@ -221,33 +223,32 @@ def get_question_with_details(question_id):
         # Process each row
         for row in result:
             # Answer information (if exists)
-            if row[7]:  # Answer exists
+            if row[8]:  # Answer exists
                 answer = {
-                    "answer_id": row[7],
-                    "body": row[8],
-                    "code": row[9],
-                    "created_at": row[10],
-                    "updated_at": row[11],
-                    "upvotes": row[12],
-                    "comments": []
+                     "answer_id": row[8],
+                    "body": row[9],
+                    "code": row[10],
+                    "created_at": row[11],
+                    "updated_at": row[12],
+                    "upvotes": row[13],
+                    "comments": []  # This will
                 }
                 # Add answer to dictionary, indexed by answer_id
-                answers[row[7]] = answer
+                answers[row[8]] = answer
 
             # Comment information (if exists)
-            if row[13]:  # Comment exists
+            if row[14]:  # Comment exists
                 comment = {
-                    "comment_id": row[13],
-                    "parent_type": row[14],
-                    "parent_id": row[15],
-                    "body": row[16],
-                    "created_at": row[17],
-                    "updated_at": row[18]
+                    "comment_id": row[14],
+                    "parent_type": row[15],
+                    "parent_id": row[16],
+                    "body": row[17],
+                    "created_at": row[18],
+                    "updated_at": row[19]
                 }
-                # Check if comment is related to an answer or question
-                if row[14] == 'answer' and row[15] in answers:
-                    answers[row[15]]["comments"].append(comment)
-                else:
+                if row[15] == 'answer' and row[16] in answers:
+                    answers[row[16]]["comments"].append(comment)
+                elif row[15] == 'question':
                     comments.append(comment)
 
         # Now append answers and comments to the response
@@ -408,7 +409,6 @@ def get_questions_by_tag():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
 @app_routes.route('/api/questions/<int:question_id>/comments', methods=['GET'])
 def get_comments_for_question(question_id):
     try:
@@ -454,3 +454,224 @@ def get_comments_for_question(question_id):
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@app_routes.route('/api/uploadquestion', methods=['POST'])
+def upload_question():
+    try:
+        # Decode the token
+        payload, error = decode_token()
+        if error:
+            return jsonify({"error": error}), 401
+
+        user_id = payload.get("user_id")
+        if not user_id:
+            return jsonify({"error": "Invalid token"}), 401
+
+        # Parse request data
+        data = request.json
+        if not data:
+            return jsonify({"error": "Missing request body"}), 400
+
+        title = data.get("title")
+        description = data.get("description")
+        code_snippet = data.get("code")
+
+        if not title or not description:
+            return jsonify({"error": "Title and description are required"}), 400
+
+        # Insert into the database
+        cursor = mysql.connection.cursor()
+        cursor.execute("USE questionanswerplatform")
+        
+        query = """
+        INSERT INTO questions (user_id, title, body, code, created_at)
+        VALUES (%s, %s, %s, %s, NOW())
+        """
+        cursor.execute(query, (user_id, title, description, code_snippet))
+
+        # Log query for debugging        
+        mysql.connection.commit()
+        print("Commit successful")
+
+        question_id = cursor.lastrowid
+        cursor.close()
+
+        return jsonify({"message": "Question submitted successfully", "question_id": question_id}), 201
+
+    except Exception as e:
+        print("Error:", e)
+        return jsonify({"error": str(e)}), 500
+
+@app_routes.route('/api/getuseridfromtoken', methods=['GET'])
+def getuserid():
+    try:
+        # Decode the token
+        payload, error = decode_token()
+        if error:
+            return jsonify({"error": error}), 401
+        user_id = payload.get("user_id")
+        return jsonify({'user_id': user_id}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+@app_routes.route('/api/updatequestion/<int:question_id>', methods=['PUT'])
+def updatequestion(question_id):
+    try:
+        payload, error = decode_token()  # Decode token and extract payload
+        user_id = payload['user_id']    # Extract user_id from the payload
+        
+        data = request.json
+        if not data:
+            return jsonify({"error": "Invalid or missing JSON data"}), 400
+
+        code = data.get('code')
+        body = data.get('body')
+
+        # Ensure all required fields are provided
+        if not all([code, body]):
+            return jsonify({"error": "Missing required fields"}), 400
+
+        cursor = mysql.connection.cursor()
+        cursor.execute("USE questionanswerplatform")
+        
+        # Query to fetch user information
+        query = """
+        SELECT user_id
+        FROM questions
+        WHERE question_id = %s;
+        """
+        cursor.execute(query, (question_id,))
+        result = cursor.fetchone()
+        
+        if not result or user_id != result[0]:
+            return jsonify({"error": "Unauthorized user"}), 403
+        
+        # Update question
+        update_query = """
+        UPDATE questions
+        SET
+            code = %s,
+            body = %s,
+            updated_at = NOW()
+        WHERE
+            question_id = %s;
+        """
+        cursor.execute(update_query, (code, body, question_id))
+        mysql.connection.commit()
+
+        return jsonify({"message": "Question updated successfully"}), 200
+    
+    except Exception as e:
+        # Log the error for debugging purposes
+        print(f"Error: {e}")
+        return jsonify({"error": "An unexpected error occurred"}), 500
+    
+    except Exception as e:
+        # Log the error (recommended for debugging)
+        print(f"Error: {e}")
+        return jsonify({"error": "An unexpected error occurred"}), 500
+
+@app_routes.route('/api/updateanswer/<int:answer_id>', methods=['PUT'])
+def updateanswer(answer_id):
+    try:
+        payload, error = decode_token()  # Decode token and extract payload
+        user_id = payload['user_id']    # Extract user_id from the payload
+        
+        # Parse JSON request data
+        data = request.json
+        if not data:
+            return jsonify({"error": "Invalid or missing JSON data"}), 400
+
+        code = data.get('code')
+        body = data.get('body')
+
+        # Ensure the required field is provided
+        if not body:
+            return jsonify({"error": "Missing required fields"}), 400
+
+        cursor = mysql.connection.cursor()
+        cursor.execute("USE questionanswerplatform")
+        
+        # Query to verify the user is the owner of the answer
+        query = """
+        SELECT user_id
+        FROM answers
+        WHERE answer_id = %s;
+        """
+        cursor.execute(query, (answer_id,))
+        result = cursor.fetchone()
+        
+        if not result or user_id != result[0]:
+            return jsonify({"error": "Unauthorized user"}), 403
+        
+        # Update the answer
+        update_query = """
+        UPDATE answers
+        SET
+            code = %s,
+            body = %s,
+            updated_at = NOW()
+        WHERE
+            answer_id = %s;
+        """
+        cursor.execute(update_query, (code ,body, answer_id))
+        mysql.connection.commit()
+
+        return jsonify({"message": "Answer updated successfully"}), 200
+
+    except Exception as e:
+        # Log the error for debugging purposes
+        print(f"Error: {e}")
+        return jsonify({"error": "An unexpected error occurred"}), 500
+
+@app_routes.route('/api/updatecomment/<int:comment_id>', methods=['PUT'])
+def updatecomment(comment_id):
+    try:
+        payload, error = decode_token()  # Decode token and extract payload
+        user_id = payload['user_id']    # Extract user_id from the payload
+        
+        # Parse JSON request data
+        data = request.json
+        if not data:
+            return jsonify({"error": "Invalid or missing JSON data"}), 400
+
+        body = data.get('body')
+
+        # Ensure the required field is provided
+        if not body:
+            return jsonify({"error": "Missing required fields"}), 400
+
+        cursor = mysql.connection.cursor()
+        cursor.execute("USE questionanswerplatform")
+        
+        # Query to verify the user is the owner of the comment
+        query = """
+        SELECT user_id
+        FROM comments
+        WHERE comment_id = %s;
+        """
+        cursor.execute(query, (comment_id,))
+        result = cursor.fetchone()
+        
+        if not result or user_id != result[0]:
+            return jsonify({"error": "Unauthorized user"}), 403
+        
+        # Update the comment
+        update_query = """
+        UPDATE comments
+        SET
+            body = %s,
+            updated_at = NOW()
+        WHERE
+            comment_id = %s;
+        """
+        cursor.execute(update_query, (body, comment_id))
+        mysql.connection.commit()
+
+        return jsonify({"message": "Comment updated successfully"}), 200
+
+    except Exception as e:
+        # Log the error for debugging purposes
+        print(f"Error: {e}")
+        return jsonify({"error": "An unexpected error occurred"}), 500
