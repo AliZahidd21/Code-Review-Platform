@@ -38,17 +38,17 @@ function MyAnsweredQuestions() {
   // Display the answered questions
   return (
     <div className="container my-5">
-      <h1 className="text-primary">Questions You've Answered</h1>
-      {loading && <p>Loading...</p>}
+      <h1 className="text-light">Questions You've Answered</h1>
+      {loading && <p className="text-light">Loading...</p>}
       {error && <p className="text-danger">{error}</p>}
       {answeredQuestions.length === 0 && !loading && (
-        <p>You haven't answered any questions yet.</p>
+        <p className="text-light">You haven't answered any questions yet.</p>
       )}
       <div>
         {answeredQuestions.map((question) => (
           <div
             key={question.question_id}
-            className="bg-light p-4 rounded shadow-sm mb-4"
+            className="bg-dark text-light p-4 rounded shadow-sm mb-4"
           >
             <h3>{question.title}</h3>
             <p>{question.body}</p>
@@ -63,7 +63,7 @@ function MyAnsweredQuestions() {
               {new Date(question.answer.created_at).toLocaleString()}
             </p>
             <button
-              className="btn btn-info"
+              className="btn btn-outline-light"
               onClick={() => navigate(`/question/${question.question_id}`)} // Navigate to the full question
             >
               View Question

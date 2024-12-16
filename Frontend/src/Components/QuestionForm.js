@@ -51,7 +51,7 @@ function QuestionForm() {
 
   return isSignedIn ? (
     <div className="container mt-5">
-      <div className="card shadow-sm p-4 rounded">
+      <div className="card bg-dark text-light shadow-sm p-4 rounded">
         <h2 className="text-primary mb-4">Submit a Question</h2>
         <form onSubmit={handleSubmit}>
           <div className="mb-3">
@@ -113,7 +113,7 @@ function QuestionForm() {
     </div>
   ) : (
     <Link to={"/Login"}>
-      <p>Sign in to upload a question</p>
+      <p className="text-light">Sign in to upload a question</p>
     </Link>
   );
 }

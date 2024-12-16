@@ -2,12 +2,14 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FaUserCircle } from "react-icons/fa";
 import { useAuth } from "../Services/AuthContext";
+import "bootstrap/dist/css/bootstrap.min.css";
 
 const Navbar = () => {
   const { isSignedIn, logout } = useAuth();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Handles authentication logic (sign in or sign out)
   const handleAuthClick = () => {
     if (isSignedIn) {
       logout();
@@ -17,6 +19,7 @@ const Navbar = () => {
     }
   };
 
+  // Navigates to the user's profile
   const handleProfileClick = () => {
     if (isSignedIn) {
       navigate("/profile");
@@ -25,14 +28,17 @@ const Navbar = () => {
     }
   };
 
+  // Handles search functionality
   const handleSearch = () => {
-    navigate(`/DisplayQuestions?search=${searchQuery}`);
+    if (searchQuery.trim()) {
+      navigate(`/DisplayQuestions?search=${searchQuery}`);
+    }
   };
 
   return (
     <nav className="navbar navbar-expand-lg navbar-dark bg-dark">
       <div className="container-fluid">
-        <Link className="navbar-brand" to="/">
+        <Link className="navbar-brand text-light" to="/">
           Q&A App
         </Link>
         <button
@@ -49,48 +55,31 @@ const Navbar = () => {
         <div className="collapse navbar-collapse" id="navbarNav">
           <ul className="navbar-nav me-auto">
             <li className="nav-item">
-              <Link className="nav-link" to="/">
+              <Link className="nav-link text-light" to="/">
                 Home
               </Link>
             </li>
             <li className="nav-item">
-              <Link className="nav-link" to="/displayQuestions">
+              <Link className="nav-link text-light" to="/displayQuestions">
                 View Questions
               </Link>
             </li>
-            {isSignedIn ? (
+            {isSignedIn && (
               <>
                 <li className="nav-item">
-                  <Link className="nav-link" to="/submit">
+                  <Link className="nav-link text-light" to="/submit">
                     Submit a Question
                   </Link>
                 </li>
                 <li className="nav-item">
-                  <Link className="nav-link" to="/myquestions">
+                  <Link className="nav-link text-light" to="/myquestions">
                     My Questions
                   </Link>
                 </li>
-                <li className="nav-item">
-                  <Link className="nav-link" to="/myanswers">
-                    My Answers
-                  </Link>
-                </li>
               </>
-            ) : (
-              <></>
             )}
           </ul>
           <div className="d-flex align-items-center">
-            <input
-              type="text"
-              className="form-control me-2"
-              placeholder="Search Questions"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <button className="btn btn-outline-light" onClick={handleSearch}>
-              Search
-            </button>
             {isSignedIn ? (
               <>
                 <FaUserCircle
@@ -105,14 +94,12 @@ const Navbar = () => {
                 </button>
               </>
             ) : (
-              <>
-                <button
-                  className="btn btn-outline-light btn-sm"
-                  onClick={handleAuthClick}
-                >
-                  Sign In
-                </button>
-              </>
+              <button
+                className="btn btn-outline-light btn-sm"
+                onClick={handleAuthClick}
+              >
+                Sign In
+              </button>
             )}
           </div>
         </div>

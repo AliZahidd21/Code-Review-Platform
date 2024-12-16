@@ -12,14 +12,29 @@ import Register from "./Components/Register";
 import MyQuestions from "./Components/myquestions";
 import MyAnswers from "./Components/myanswers";
 
-
 function App() {
+  const HomePage = () => (
+    <div className="container text-center my-5 text-light bg-dark rounded">
+      <div className="p-5">
+        <h1 className="display-4">Welcome to CodoOptimize</h1>
+        <p className="lead">
+          A platform to collaborate and improve code quality with fellow developers.
+        </p>
+        <hr className="my-4 border-light" />
+        <p>Join discussions, ask questions, and share your expertise today!</p>
+        <a className="btn btn-primary btn-lg" href="/RegisterUser" role="button">
+          Get Started
+        </a>
+      </div>
+    </div>
+  );
+
   return (
     <Router>
       <AuthProvider>
         <Navbar />
         <Routes>
-          <Route path="/" element={<p>Home Page</p>} />
+          <Route path="/" element={<HomePage />} />
           <Route path="/RegisterUser" element={<Register />} />
           <Route path="/myanswers" element={<MyAnswers />} />
           <Route path="/myquestions" element={<MyQuestions />} />

@@ -10,7 +10,7 @@ const Register = () => {
 
   const handleRegister = async (e) => {
     e.preventDefault();
-    
+
     try {
       // Make API request to register the user
       const response = await fetch("http://localhost:5000/api/users/register", {
@@ -40,40 +40,58 @@ const Register = () => {
   };
 
   return (
-    <div>
-      <h2>Register</h2>
-      <form onSubmit={handleRegister}>
-        <div>
-          <label>Username:</label>
-          <input
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-          />
+    <div className="container my-5">
+      <div className="row justify-content-center">
+        <div className="col-md-6">
+          <div className="bg-dark text-light p-4 rounded shadow-lg">
+            <h2 className="text-center text-light">Register</h2>
+            <form onSubmit={handleRegister}>
+              <div className="mb-3">
+                <label className="form-label">Username:</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="mb-3">
+                <label className="form-label">Email:</label>
+                <input
+                  type="email"
+                  className="form-control"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="mb-3">
+                <label className="form-label">Password:</label>
+                <input
+                  type="password"
+                  className="form-control"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+              <button type="submit" className="btn btn-outline-light w-100 mb-3">
+                Register
+              </button>
+            </form>
+            <div className="text-center">
+              <button
+                className="btn btn-link text-light"
+                onClick={() => navigate("/login")}
+              >
+                Already have an account? Login
+              </button>
+            </div>
+            {errorMessage && <p className="text-danger text-center mt-3">{errorMessage}</p>}
+          </div>
         </div>
-        <div>
-          <label>Email:</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <label>Password:</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-        <button type="submit">Register</button>
-      </form>
-      <button onClick={() => navigate("/LoginPage")}>Already have an account? Login</button>
-      {errorMessage && <p>{errorMessage}</p>}
+      </div>
     </div>
   );
 };

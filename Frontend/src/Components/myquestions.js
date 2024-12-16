@@ -53,17 +53,17 @@ const UserQuestions = () => {
 
   return (
     <div className="container my-5">
-      <h1 className="text-primary">Questions Asked by User {userId}</h1>
+      <h1 className="text-light">Questions Asked by User {userId}</h1>
       {questions.length > 0 ? (
         questions.map((question) => (
           <div
             key={question.question_id}
-            className="bg-light p-4 rounded shadow-sm mb-4"
+            className="bg-dark text-light p-4 rounded shadow-sm mb-4"
           >
             <h2>
               <Link
                 to={`/question/${question.question_id}`}
-                className="text-decoration-none"
+                className="text-light text-decoration-none"
               >
                 {question.title}
               </Link>
@@ -80,7 +80,7 @@ const UserQuestions = () => {
           </div>
         ))
       ) : (
-        <p>No questions found for this user.</p>
+        <p className="text-light">No questions found for this user.</p>
       )}
     </div>
   );

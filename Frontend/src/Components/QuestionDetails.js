@@ -15,9 +15,6 @@ const QuestionDisplay = () => {
   const [updatedContent, setUpdatedContent] = useState({});
   const [answerBody, setAnswerBody] = useState("");
   const [answerCode, setAnswerCode] = useState("");
-  const [commentBody, setCommentBody] = useState("");
-  const [selectedParentType, setSelectedParentType] = useState("question");
-  const [selectedParentId, setSelectedParentId] = useState(null);
   const { isSignedIn } = useAuth();
 
   useEffect(() => {
@@ -50,7 +47,6 @@ const QuestionDisplay = () => {
         );
         if (!response.ok) throw new Error("Failed to fetch question data");
         const data = await response.json();
-        setSelectedParentId(id);
         setQuestion(data);
       } catch (err) {
         setError(err.message);
@@ -81,8 +77,6 @@ const QuestionDisplay = () => {
       endpoint = `/api/updatequestion/${item.question_id}`;
     } else if (type === "answer") {
       endpoint = `/api/updateanswer/${item.answer_id}`;
-    } else if (type === "comment") {
-      endpoint = `/api/updatecomment/${item.comment_id}`;
     }
 
     try {
@@ -142,40 +136,6 @@ const QuestionDisplay = () => {
     }
   };
 
-  const handleSubmitComment = async (e) => {
-    e.preventDefault();
-    if (!isSignedIn) {
-      alert("You must be signed in to submit a comment.");
-      return;
-    }
-
-    const token = localStorage.getItem("authToken");
-    try {
-      const response = await fetch(
-        `http://localhost:5000/api/comments/${selectedParentType}/${selectedParentId}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ body: commentBody }),
-        }
-      );
-
-      if (!response.ok) throw new Error("Failed to submit comment");
-
-      const newComment = await response.json();
-      setQuestion((prev) => ({
-        ...prev,
-        comments: [...prev.comments, newComment],
-      }));
-      setCommentBody("");
-    } catch (err) {
-      console.error("Error submitting comment:", err);
-    }
-  };
-
   if (loading) return <p>Loading question...</p>;
   if (error) return <p className="text-danger">{error}</p>;
 
@@ -187,14 +147,14 @@ const QuestionDisplay = () => {
   return (
     <div className="container my-5">
       {/* Question Section */}
-      <div className="question bg-light p-4 rounded shadow-sm mb-4">
-        <h1 className="text-primary">{question.question.title}</h1>
+      <div className="bg-dark text-light p-4 rounded shadow-sm mb-4"
+           style={{ border: '1px solid rgba(255, 255, 255, 0.2)', boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)' }}>
+        <h1>{question.question.title}</h1>
         <p>{question.question.body}</p>
         <pre className="bg-dark text-light p-3 rounded">
           <code>{question.question.code || "No code snippet provided"}</code>
         </pre>
         <p className="text-muted">Username: {question.question.asked_by}</p>{" "}
-        {/* 'posted_by' for question */}
         <p>
           <strong>Created At:</strong>{" "}
           {formatTimestamp(question.question.created_at)}
@@ -210,19 +170,20 @@ const QuestionDisplay = () => {
       </div>
 
       {/* Answers Section */}
-      <div className="answers bg-light p-4 rounded shadow-sm">
+      <div className="bg-dark text-light p-4 rounded shadow-sm mb-4"
+           style={{ border: '1px solid rgba(255, 255, 255, 0.2)', boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)' }}>
         <h2 className="text-success">Answers</h2>
         {question.answers.map((answer) => (
           <div
-            className="bg-white p-3 rounded shadow-sm mb-4"
+            className="bg-dark text-light p-3 rounded shadow-sm mb-4"
             key={answer.answer_id}
+            style={{ border: '1px solid rgba(255, 255, 255, 0.2)', boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)' }}
           >
             <p>{answer.body}</p>
             <pre className="bg-dark text-light p-3 rounded">
               <code>{answer.code || "No code snippet provided"}</code>
             </pre>
             <p className="text-muted">Username: {answer.asked_by}</p>{" "}
-            {/* 'posted_by' for answer */}
             <p>
               <strong>Created At:</strong> {formatTimestamp(answer.created_at)}
             </p>
@@ -250,80 +211,11 @@ const QuestionDisplay = () => {
             value={answerCode}
             onChange={(e) => setAnswerCode(e.target.value)}
           />
-          <button type="submit" className="btn btn-success">
+          <button type="submit" className="btn btn-info">
             Submit Answer
           </button>
         </form>
       </div>
-
-      {/* Comments Section */}
-      <div className="comments bg-light p-4 rounded shadow-sm">
-        <h3 className="text-info">Comments</h3>
-        {question.comments.map((comment) => (
-          <div key={comment.comment_id}>
-            <p>{comment.body}</p>
-            <p className="text-muted">Username: {comment.posted_by}</p>{" "}
-            {/* 'posted_by' for comment */}
-            <p>
-              <strong>Created At:</strong> {formatTimestamp(comment.created_at)}
-            </p>
-          </div>
-        ))}
-
-        <form onSubmit={handleSubmitComment}>
-          <textarea
-            className="form-control mb-2"
-            placeholder="Write your comment..."
-            value={commentBody}
-            onChange={(e) => setCommentBody(e.target.value)}
-            required
-          />
-          <button type="submit" className="btn btn-primary">
-            Submit Comment
-          </button>
-        </form>
-      </div>
-
-      {/* Edit Modal for Question/Answer */}
-      {editingItem && (
-        <div className="edit-modal">
-          {(editingItem.type === "question" ||
-            editingItem.type === "answer") && (
-            <>
-              <textarea
-                className="form-control mb-3"
-                placeholder="Edit code"
-                value={updatedContent.code || ""}
-                onChange={(e) =>
-                  setUpdatedContent((prev) => ({
-                    ...prev,
-                    code: e.target.value,
-                  }))
-                }
-              />
-            </>
-          )}
-
-          <textarea
-            className="form-control mb-3"
-            placeholder="Edit body"
-            value={updatedContent.body || ""}
-            onChange={(e) =>
-              setUpdatedContent((prev) => ({ ...prev, body: e.target.value }))
-            }
-          />
-
-          <button className="btn btn-primary me-2" onClick={handleSave}>
-            Save
-          </button>
-          <button
-            className="btn btn-secondary"
-            onClick={() => setEditingItem(null)}
-          >
-            Cancel
-          </button>
-        </div>
-      )}
     </div>
   );
 };

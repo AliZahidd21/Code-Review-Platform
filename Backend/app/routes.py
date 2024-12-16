@@ -7,10 +7,8 @@ from app.models import get_user_by_email, register_user
 
 app_routes = Blueprint('app_routes', __name__)
 
-# Secret key for JWT encoding/decoding (store this securely)
-SECRET_KEY = "your_secret_key_here"  # Change this to a more secure key
+SECRET_KEY = "your_secret_key_here"  
 
-# Function to generate a JWT token
 def generate_jwt_token(user_id):
     expiration_time = datetime.datetime.utcnow() + datetime.timedelta(hours=1)  # Token expires in 1 hour
     payload = {
@@ -24,16 +22,16 @@ def decode_token():
     if not auth_header or not auth_header.startswith("Bearer "):
         return None, "Authorization header missing or invalid"
     
-    token = auth_header.split(" ")[1]  # Extract the token part
+    token = auth_header.split(" ")[1]  
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-        return payload, None  # Return payload if valid
+        return payload, None 
     except jwt.ExpiredSignatureError:
         return None, "Token has expired"
     except jwt.InvalidTokenError:
         return None, "Invalid token"
 
-# Route: Login a user
+# Login a user
 @app_routes.route('/api/users/login', methods=['POST'])
 def login():
     try:
@@ -47,11 +45,9 @@ def login():
         if not all([email, password]):
             return jsonify({"error": "Missing required fields"}), 400
 
-        # Validate user credentials
         user = get_user_by_email(email)
-        if user and check_password_hash(user[3], password):  # user[3] is the password in your DB
-            # Generate a JWT token
-            token = generate_jwt_token(user[0])  # user[0] is the user_id in your DB
+        if user and check_password_hash(user[3], password):
+            token = generate_jwt_token(user[0])  
 
             return jsonify({
                 "message": "Login successful",
@@ -60,14 +56,14 @@ def login():
                     "username": user[1],
                     "email": user[2]
                 },
-                "token": token  # Send the token in the response
+                "token": token 
             }), 200
 
         return jsonify({"error": "Invalid credentials"}), 401
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# Route: Register a new user
+# Register a new user
 @app_routes.route('/api/users/register', methods=['POST'])
 def registeruser():
     try:
@@ -75,27 +71,21 @@ def registeruser():
         if not data:
             return jsonify({"error": "Invalid or missing JSON data"}), 400
 
-        # Extract data from request
         username = data.get('username')
         email = data.get('email')
         password = data.get('password')
 
-        # Ensure all required fields are provided
         if not all([username, email, password]):
             return jsonify({"error": "Missing required fields"}), 400
 
-        # Check if email is already in use
         existing_user = get_user_by_email(email)
         if existing_user:
             return jsonify({"error": "Email already in use"}), 400
 
-        # Hash the password before storing it
         password_hash = generate_password_hash(password)
 
-        # Register the user and get the user_id
         user_id = register_user(username, email, password_hash)
 
-        # You can optionally set a created_at date here or in the database if needed
         created_at = datetime.datetime.utcnow().isoformat()
 
         return jsonify({
@@ -112,7 +102,7 @@ def registeruser():
 def get_all_questions():
     try:
         cursor = mysql.connection.cursor()
-        cursor.execute("USE questionanswerplatform")  # Select the database explicitly
+        cursor.execute("USE questionanswerplatform")
         query = """
             SELECT 
                 q.question_id,
@@ -153,9 +143,8 @@ def get_all_questions():
 @app_routes.route('/api/questions/<int:question_id>', methods=['GET'])
 def get_question_with_details(question_id):
     try:
-        # Establish a database connection
         cursor = mysql.connection.cursor()
-        cursor.execute("USE questionanswerplatform")  # Select the database explicitly
+        cursor.execute("USE questionanswerplatform")  
 
         query = """
         SELECT 
@@ -203,15 +192,12 @@ def get_question_with_details(question_id):
             q.question_id = %s;
         """
         
-        # Execute the query with the given question_id
         cursor.execute(query, (question_id,))
         result = cursor.fetchall()
 
-        # If no results, return an error
         if not result:
             return jsonify({"error": "Question not found"}), 404
 
-        # Organize the result into a structured format
         response = {
             "question": {
                 "question_id": result[0][0],
@@ -222,34 +208,30 @@ def get_question_with_details(question_id):
                 "updated_at": result[0][5],
                 "views": result[0][6],
                 "upvotes": result[0][7],
-                "asked_by": result[0][8],  # Adding username of the question creator
+                "asked_by": result[0][8],  
             },
             "answers": [],
             "comments": [],
         }
 
-        answers = {}  # To store answers by their ID
-        comments = []  # To store comments
+        answers = {} 
+        comments = []  
 
-        # Process each row
         for row in result:
-            # Answer information (if exists)
-            if row[8]:  # Answer exists
+            if row[8]: 
                 answer = {
-                     "answer_id": row[8],
+                    "answer_id": row[8],
                     "body": row[9],
                     "code": row[10],
                     "created_at": row[11],
                     "updated_at": row[12],
                     "upvotes": row[13],
-                    "asked_by": row[14],  # Adding username of the answer creator
-                    "comments": []  # This will hold comments for the answer
+                    "asked_by": row[14],
+                    "comments": []
                 }
-                # Add answer to dictionary, indexed by answer_id
-                answers[row[8]] = answer
+                answers[row[8]] = answer 
 
-            # Comment information (if exists)
-            if row[14]:  # Comment exists
+            if row[14]: 
                 comment = {
                     "comment_id": row[14],
                     "parent_type": row[15],
@@ -257,15 +239,14 @@ def get_question_with_details(question_id):
                     "body": row[17],
                     "created_at": row[18],
                     "updated_at": row[19],
-                    "posted_by": row[20],  # Adding username of the comment creator
+                    "posted_by": row[20],  
                 }
                 if row[15] == 'answer' and row[16] in answers:
-                    answers[row[16]]["comments"].append(comment)
+                    answers[row[16]]["comments"].append(comment)  
                 elif row[15] == 'question':
                     comments.append(comment)
 
-        # Now append answers and comments to the response
-        response["answers"] = list(answers.values())
+        response["answers"] = list(answers.values()) 
         response["comments"] = comments
 
         return jsonify(response), 200
@@ -276,19 +257,16 @@ def get_question_with_details(question_id):
 
 @app_routes.route('/api/users', methods=['GET'])
 def get_user_info():
-    # Get the token from the request header
     payload, error = decode_token()
     
     if error:
-        return jsonify({"error": error}), 401  # Unauthorized if token is invalid
+        return jsonify({"error": error}), 401  
 
-    user_id_from_token = payload['user_id']  # Assuming the token contains the user_id
+    user_id_from_token = payload['user_id']  
     try:
-        # Fetch user info from the database
         cursor = mysql.connection.cursor()
         cursor.execute("USE questionanswerplatform")
         
-        # Query to fetch user information
         query = """
         SELECT
             u.user_id,
@@ -306,7 +284,6 @@ def get_user_info():
         if not result:
             return jsonify({"error": "User not found"}), 404
 
-        # Return user data as JSON
         user_info = {
             "user_id": result[0],
             "username": result[1],
@@ -314,7 +291,7 @@ def get_user_info():
             "created_at": result[3]
         }
         print(user_info)
-        print("Decoded user_id: {user_id_from_token}")  # Log the user_id
+        print("Decoded user_id: {user_id_from_token}") 
 
 
         return jsonify(user_info), 200
@@ -473,7 +450,6 @@ def get_comments_for_question(question_id):
 @app_routes.route('/api/uploadquestion', methods=['POST'])
 def upload_question():
     try:
-        # Decode the token
         payload, error = decode_token()
         if error:
             return jsonify({"error": error}), 401
@@ -482,7 +458,6 @@ def upload_question():
         if not user_id:
             return jsonify({"error": "Invalid token"}), 401
 
-        # Parse request data
         data = request.json
         if not data:
             return jsonify({"error": "Missing request body"}), 400
@@ -494,7 +469,6 @@ def upload_question():
         if not title or not description:
             return jsonify({"error": "Title and description are required"}), 400
 
-        # Insert into the database
         cursor = mysql.connection.cursor()
         cursor.execute("USE questionanswerplatform")
         
@@ -504,7 +478,6 @@ def upload_question():
         """
         cursor.execute(query, (user_id, title, description, code_snippet))
 
-        # Log query for debugging        
         mysql.connection.commit()
         print("Commit successful")
 
@@ -520,7 +493,6 @@ def upload_question():
 @app_routes.route('/api/getuseridfromtoken', methods=['GET'])
 def getuserid():
     try:
-        # Decode the token
         payload, error = decode_token()
         if error:
             return jsonify({"error": error}), 401
@@ -532,8 +504,8 @@ def getuserid():
 @app_routes.route('/api/updatequestion/<int:question_id>', methods=['PUT'])
 def updatequestion(question_id):
     try:
-        payload, error = decode_token()  # Decode token and extract payload
-        user_id = payload['user_id']    # Extract user_id from the payload
+        payload, error = decode_token()  
+        user_id = payload['user_id']   
         
         data = request.json
         if not data:
@@ -542,14 +514,12 @@ def updatequestion(question_id):
         code = data.get('code')
         body = data.get('body')
 
-        # Ensure all required fields are provided
         if not all([code, body]):
             return jsonify({"error": "Missing required fields"}), 400
 
         cursor = mysql.connection.cursor()
         cursor.execute("USE questionanswerplatform")
         
-        # Query to fetch user information
         query = """
         SELECT user_id
         FROM questions
@@ -561,7 +531,6 @@ def updatequestion(question_id):
         if not result or user_id != result[0]:
             return jsonify({"error": "Unauthorized user"}), 403
         
-        # Update question
         update_query = """
         UPDATE questions
         SET
@@ -577,22 +546,19 @@ def updatequestion(question_id):
         return jsonify({"message": "Question updated successfully"}), 200
     
     except Exception as e:
-        # Log the error for debugging purposes
         print(f"Error: {e}")
         return jsonify({"error": "An unexpected error occurred"}), 500
     
     except Exception as e:
-        # Log the error (recommended for debugging)
         print(f"Error: {e}")
         return jsonify({"error": "An unexpected error occurred"}), 500
 
 @app_routes.route('/api/updateanswer/<int:answer_id>', methods=['PUT'])
 def updateanswer(answer_id):
     try:
-        payload, error = decode_token()  # Decode token and extract payload
-        user_id = payload['user_id']    # Extract user_id from the payload
+        payload, error = decode_token() 
+        user_id = payload['user_id']    
         
-        # Parse JSON request data
         data = request.json
         if not data:
             return jsonify({"error": "Invalid or missing JSON data"}), 400
@@ -600,14 +566,12 @@ def updateanswer(answer_id):
         code = data.get('code')
         body = data.get('body')
 
-        # Ensure the required field is provided
         if not body:
             return jsonify({"error": "Missing required fields"}), 400
 
         cursor = mysql.connection.cursor()
         cursor.execute("USE questionanswerplatform")
         
-        # Query to verify the user is the owner of the answer
         query = """
         SELECT user_id
         FROM answers
@@ -619,7 +583,6 @@ def updateanswer(answer_id):
         if not result or user_id != result[0]:
             return jsonify({"error": "Unauthorized user"}), 403
         
-        # Update the answer
         update_query = """
         UPDATE answers
         SET
@@ -635,31 +598,27 @@ def updateanswer(answer_id):
         return jsonify({"message": "Answer updated successfully"}), 200
 
     except Exception as e:
-        # Log the error for debugging purposes
         print(f"Error: {e}")
         return jsonify({"error": "An unexpected error occurred"}), 500
 
 @app_routes.route('/api/updatecomment/<int:comment_id>', methods=['PUT'])
 def updatecomment(comment_id):
     try:
-        payload, error = decode_token()  # Decode token and extract payload
-        user_id = payload['user_id']    # Extract user_id from the payload
+        payload, error = decode_token()  
+        user_id = payload['user_id']   
         
-        # Parse JSON request data
         data = request.json
         if not data:
             return jsonify({"error": "Invalid or missing JSON data"}), 400
 
         body = data.get('body')
 
-        # Ensure the required field is provided
         if not body:
             return jsonify({"error": "Missing required fields"}), 400
 
         cursor = mysql.connection.cursor()
         cursor.execute("USE questionanswerplatform")
         
-        # Query to verify the user is the owner of the comment
         query = """
         SELECT user_id
         FROM comments
@@ -671,7 +630,6 @@ def updatecomment(comment_id):
         if not result or user_id != result[0]:
             return jsonify({"error": "Unauthorized user"}), 403
         
-        # Update the comment
         update_query = """
         UPDATE comments
         SET
@@ -686,7 +644,6 @@ def updatecomment(comment_id):
         return jsonify({"message": "Comment updated successfully"}), 200
 
     except Exception as e:
-        # Log the error for debugging purposes
         print(f"Error: {e}")
         return jsonify({"error": "An unexpected error occurred"}), 500
 
@@ -708,7 +665,7 @@ def post_answer(question_id):
         print(f"User ID extracted from token: {user_id}")
 
         body = data.get("body")
-        code = data.get("code", None)  # Optional code snippet
+        code = data.get("code", None)  
 
         if not body:
             print("Answer body is missing")
@@ -759,7 +716,7 @@ def get_user_questions():
         user_id = payload['user_id']
         # Establish a database connection
         cursor = mysql.connection.cursor()
-        cursor.execute("USE questionanswerplatform")  # Select the database explicitly
+        cursor.execute("USE questionanswerplatform") 
 
         query = """
         SELECT 
@@ -778,16 +735,13 @@ def get_user_questions():
             q.user_id = %s;
         """
 
-        # Execute the query with the user's ID
         cursor.execute(query, (user_id,))
         
         result = cursor.fetchall()
 
-        # If no results, return an error
         if not result:
             return jsonify({"error": "No questions found for this user"}), 404
 
-        # Organize the result into a structured format
         questions = []
         for row in result:
             questions.append({
@@ -808,13 +762,11 @@ def get_user_questions():
 @app_routes.route('/api/my-answered-questions', methods=['GET'])
 def get_answered_questions():
     try:
-        # Decode the JWT token to get the user ID
         payload, error = decode_token()
         user_id = payload['user_id']
 
-        # Query the database to fetch all questions where the user has answered
         cursor = mysql.connection.cursor()
-        cursor.execute("USE questionanswerplatform")  # Select the database explicitly
+        cursor.execute("USE questionanswerplatform")  
 
         
         cursor.execute("""
@@ -835,11 +787,9 @@ def get_answered_questions():
         
         result = cursor.fetchall()
         
-        # If no answers, return an empty list
         if not result:
             return jsonify({"message": "You haven't answered any questions."}), 200
         
-        # Organize the result into a structured format
         questions = []
         for row in result:
             question = {

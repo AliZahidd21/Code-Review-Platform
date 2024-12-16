@@ -5,7 +5,8 @@ import "./index.css";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
-  <React.StrictMode>
+  <div className="bg-secondary text-light min-vh-100">
     <App />
-  </React.StrictMode>
+  </div>,
+  document.getElementById("root")
 );

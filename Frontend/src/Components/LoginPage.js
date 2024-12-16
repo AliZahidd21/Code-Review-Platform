@@ -14,7 +14,7 @@ const LoginPage = () => {
     e.preventDefault();
     try {
       await login(email, password);
-      navigate("/");  // Redirect to the dashboard (or any other page on success)
+      navigate("/");  // Redirect to the homepage (or any other page on success)
     } catch (error) {
       setErrorMessage("Login failed. Please check your credentials.");
       console.error("Login failed:", error);
@@ -26,31 +26,48 @@ const LoginPage = () => {
   };
 
   return (
-    <div>
-      <h2>Login</h2>
-      <form onSubmit={handleLogin}>
-        <div>
-          <label>Email:</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
+    <div className="container my-5">
+      <div className="row justify-content-center">
+        <div className="col-md-6">
+          <div className="bg-dark text-light p-4 rounded shadow-lg">
+            <h2 className="text-center text-light">Login</h2>
+            <form onSubmit={handleLogin}>
+              <div className="mb-3">
+                <label className="form-label">Email:</label>
+                <input
+                  type="email"
+                  className="form-control"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="mb-3">
+                <label className="form-label">Password:</label>
+                <input
+                  type="password"
+                  className="form-control"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+              <button type="submit" className="btn btn-outline-light w-100 mb-3">
+                Login
+              </button>
+            </form>
+            <div className="text-center">
+              <button
+                className="btn btn-link text-light"
+                onClick={handleNewUser}
+              >
+                Not Signed in Yet? Register here.
+              </button>
+            </div>
+            {errorMessage && <p className="text-danger text-center mt-3">{errorMessage}</p>}
+          </div>
         </div>
-        <div>
-          <label>Password:</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-        <button type="submit">Login</button>
-      </form>
-      <button onClick={handleNewUser}>Not Signed in Yet</button>
-      {errorMessage && <p>{errorMessage}</p>}
+      </div>
     </div>
   );
 };

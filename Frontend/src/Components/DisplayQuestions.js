@@ -1,18 +1,17 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
-const QuestionsList = ({ search }) => {
+const DisplayQuestions = ({ search }) => {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const getQuestions = async () => {
+    const fetchQuestions = async () => {
       setLoading(true);
       setError(null);
 
       try {
-        // Fetch data from the API
         const response = await fetch("http://localhost:5000/api/questions", {
           method: "GET",
           headers: {
@@ -25,13 +24,7 @@ const QuestionsList = ({ search }) => {
         }
 
         const data = await response.json();
-
-        // Handle empty results
-        if (data.questions && data.questions.length === 0) {
-          setError("No questions found");
-        } else {
-          setQuestions(data.questions); // Use the "questions" key from the response
-        }
+        setQuestions(data.questions || []);
       } catch (err) {
         setError(err.message || "Failed to fetch questions");
       } finally {
@@ -39,26 +32,49 @@ const QuestionsList = ({ search }) => {
       }
     };
 
-    getQuestions();
+    fetchQuestions();
   }, [search]);
 
   return (
-    <div>
-      {loading && <p>Loading...</p>}
-      {error && <p>Error: {error}</p>}
-      {!loading && !error && (
-        <ul>
+    <div className="container my-4">
+      <h2 className="text-light text-center mb-4">Questions</h2>
+
+      {loading && (
+        <div className="text-center">
+          <div className="spinner-border text-light" role="status"></div>
+        </div>
+      )}
+
+      {error && <div className="alert alert-danger">{error}</div>}
+
+      {!loading && !error && questions.length === 0 && (
+        <div className="alert alert-warning">No questions found.</div>
+      )}
+
+      {!loading && !error && questions.length > 0 && (
+        <div className="row">
           {questions.map((question) => (
-            <li key={question.question_id}>
-              <Link to={`/Question/${question.question_id}`}>
-                {question.title}
-              </Link>
-            </li>
+            <div className="col-md-6 col-lg-4 mb-4" key={question.question_id}>
+              <div className="card bg-dark border-light h-100">
+                <div className="card-body">
+                  <h5 className="card-title text-warning">{question.title}</h5>
+                  <p className="card-text text-light">
+                    {question.body?.slice(0, 100) || "No description available..."}...
+                  </p>
+                  <Link
+                    to={`/Question/${question.question_id}`}
+                    className="btn btn-outline-light btn-sm"
+                  >
+                    View Details
+                  </Link>
+                </div>
+              </div>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   );
 };
 
-export default QuestionsList;
+export default DisplayQuestions;
