@@ -7,7 +7,7 @@ from app.models import get_user_by_email, register_user
 
 app_routes = Blueprint('app_routes', __name__)
 
-SECRET_KEY = "your_secret_key_here"  
+ 
 
 def generate_jwt_token(user_id):
     expiration_time = datetime.datetime.utcnow() + datetime.timedelta(hours=1)  # Token expires in 1 hour
